@@ -16,41 +16,69 @@ IRCBot::IRCBot() {
 }
 
 IRCBot::~IRCBot() {
-  close(sock_);
 }
 
-bool IRCBot::Connect(const char* node, const char* service,
+void IRCBot::Connect(const struct addrinfo* hints) {
+  Client::Connect(kDefaultService, kDefaultNode, hints);
+}
+
+void IRCBot::Connect(const char* node, const char* service,
     const struct addrinfo* hints) {
-  struct addrinfo* server_info;
-  struct addrinfo* p;
-  char server_str[INET6_ADDRSTRLEN];
+  Client::Connect(node, service, hints);
 
-  int ret;
-  if ((ret = getaddrinfo(node, service, hints, &server_info))) {
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
-    exit(EXIT_FAILURE);
-  }
+  //if (user_)
+  // Send(MSG_USER);
+  //if (nick_)
+  //  Send(MSG_NICK);
+}
 
-  for (p = server_info; p != NULL; p = p->ai_next) {
-    if (-1 == (sock_ = socket(p->ai_family, p->ai_socktype, p->ai_protocol))) {
-      perror("socket");
-      continue;
+/*
+void IRCBot::SetUser(char* user) {
+  user_ = user;
+
+  if (connected_)
+    Send(USER, user_);
+}
+
+void IRCBot::SetNick(char* nick) {
+  nick_ = nick;
+
+  if (connected_)
+    Send(NICK, nick_);
+}
+*/
+
+//void IRCBot::Send(const char* type, char* arg1) {
+//  int wlen = snprintf(buf_, sizeof(buf_), "%s);
+//}
+
+void IRCBot::Run() {
+  snprintf(buf_, sizeof(buf_), "USER %s 0 * :%s\r\n", "my_test_nick_nameee",
+      "testOwner");
+  send(sock_, buf_, strlen(buf_), 0);
+  snprintf(buf_, sizeof(buf_), "NICK %s\r\n", "mytestnicknameee");
+  send(sock_, buf_, strlen(buf_), 0);
+  snprintf(buf_, sizeof(buf_), "JOIN %s\r\n", "#bestfriendsclub");
+  send(sock_, buf_, strlen(buf_), 0);
+
+  int rlen;
+  while ((rlen = recv(sock_, buf_, sizeof(buf_), 0))) {
+    if (rlen == -1) {
+      perror("recv");
+      exit(EXIT_FAILURE);
     }
 
-    if (-1 == connect(sock_, p->ai_addr, p->ai_addrlen)) {
-      close(sock_);
-      perror("connect");
-      continue;
+    fprintf(stdout, "~~Received %d bytes~~\n", rlen);
+    buf_[rlen] = '\0';
+    fputs(buf_, stdout);
+
+    // Respond to pings.
+    if (!strncmp(buf_, "PING ", 5)) {
+      buf_[1] = 'O';
+      send(sock_, buf_, strlen(buf_), 0);
     }
 
-    break;
+    snprintf(buf_, sizeof(buf_), "test message\n");
+    send(sock_, buf_, strlen(buf_), 0);
   }
-
-  EXIT_IF(p == NULL, "Failed to connect.\n");
-
-  inet_ntop(p->ai_family, utils::get_in_addr((struct sockaddr*) p->ai_addr),
-      server_str, INET6_ADDRSTRLEN);
-  fprintf(stdout, "Connected to %s\n", server_str);
-
-  freeaddrinfo(server_info);
 }

@@ -12,8 +12,6 @@
 #include "debug.h"
 #include "irc_bot.h"
 
-void check_args(int argc, char** argv);
-
 int main(int argc, char** argv) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof(struct addrinfo));
@@ -27,5 +25,7 @@ int main(int argc, char** argv) {
   else
     bot->Connect(&hints);
 
-  delete bot;
+  //bot->SetUser("testUser");
+  //bot->SetNick("testNick");
+  bot->Run();
 }
